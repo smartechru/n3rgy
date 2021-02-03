@@ -2,12 +2,10 @@
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
 [![GitHub](https://img.shields.io/github/license/smartechru/n3rgy)](LICENSE)
-
 [![GitHub Release (latest by date)](https://img.shields.io/github/v/release/smartechru/n3rgy)](https://github.com/smartechru/n3rgy/releases)
 ![GitHub Release Date](https://img.shields.io/github/release-date/smartechru/n3rgy)
-
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-Yes-brightgreen.svg)](https://github.com/smartechru/n3rgy/graphs/commit-activity)
 [![GitHub Issues](https://img.shields.io/github/issues/smartechru/n3rgy)](https://github.com/smartechru/n3rgy/issues)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-Yes-brightgreen.svg)](https://github.com/smartechru/n3rgy/graphs/commit-activity)
 
 The `n3rgy` component is a Home Assistant custom sensor which provides access to historic energy consumption data and tariff information.
 

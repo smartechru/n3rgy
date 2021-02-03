@@ -1,5 +1,6 @@
 {
     "domain": "n3rgy",
+    "version": "1.0.2",
     "name": "n3rgy data",
     "documentation": "https://github.com/smartechru/n3rgy",
     "dependencies": [],
