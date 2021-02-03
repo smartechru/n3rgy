@@ -18,6 +18,7 @@ from homeassistant.const import (
     CONF_API_KEY
 )
 from .const import (
+    CONF_PROPERTY_ID,
     DEFAULT_NAME,
     DOMAIN
 )
@@ -34,7 +35,8 @@ class N3rgyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     config = {
         vol.Required(CONF_HOST): str,
         vol.Required(CONF_API_KEY): str,
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME): str,
+        vol.Required(CONF_PROPERTY_ID): str,
+        vol.Optional(CONF_NAME, default=DEFAULT_NAME): str
     }
 
     async def async_step_user(self, user_input=None):
