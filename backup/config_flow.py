@@ -5,14 +5,11 @@ Last modified on: Feb 3, 2021
 
 Comments:
     Config flow for n3rgy data
-
-Notes:
-    This API was not published to PyPI store yet.
-    We can use simple request function.
 """
 
 import logging
 import voluptuous as vol
+import n3rgyDataApi as n3rgy
 
 from homeassistant import config_entries
 from homeassistant.const import (
@@ -55,10 +52,21 @@ class N3rgyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
+                # load configuration
+                config = n3rgy.Configuration()
+                config.api_key['Authorization'] = user_input[CONF_API_KEY]
+                config.host = user_input[CONF_HOST]
+                
+                # client initialization
+                n3rgy_client = n3rgy.DefaultApi(n3rgy.ApiClient(config))
                 return self.async_create_entry(
                     title=user_input[CONF_NAME],
                     data=user_input
                 )
+
+                # error handler
+                errors["base"] = "invalid_api_key"
+
             except Exception:
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"

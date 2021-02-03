@@ -5,18 +5,11 @@ Last modified on: Feb 3, 2021
 
 Comments:
     Support for n3rgy data sensor
-
-Notes:
-    This API was not published to PyPI store yet.
-    We can use simple request function.
 """
 
 import logging
 import async_timeout
-import re
-import requests
 
-from requests.structures import CaseInsensitiveDict
 from datetime import timedelta
 from requests.exceptions import ConnectionError as ConnectError, HTTPError, Timeout
 from homeassistant.helpers.entity import Entity
@@ -46,13 +39,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
     :param entry: config entry
     :return: none
     """
-    # read the configuration data
-    host = None
-    api_key = None
+    # n3rgyDataApi object stored here by __init__.py
+    api_instance = hass.data[DOMAIN][entry.entry_id]
     property_id = None
     if entry and entry.data:
-        host = entry.data.get(CONF_HOST)
-        api_key = entry.data.get(CONF_API_KEY)
         property_id = entry.data.get(CONF_PROPERTY_ID)
 
     async def async_update_data():
@@ -70,8 +60,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             with async_timeout.timeout(_TIME_INTERVAL_SEC):
                 response = await hass.async_add_executor_job(
                     do_read_consumption,
-                    host,
-                    api_key,
+                    api_instance,
                     property_id,
                     start_at.strftime("%Y%m%d%H%M"),
                     end_at.strftime("%Y%m%d%H%M"),
@@ -103,36 +92,26 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities([N3rgySensor(coordinator)])
 
 
-def do_read_consumption(host, api_key, property_id, start_at, end_at):
+def do_read_consumption(api, property_id, start_at, end_at):
     """
     List consumption values for an utility type on the provided accessible 
     property, within a certain time frame
-    :param host: host URL
-    :param api_key: API key
+    :param api: n3rgy data api client
     :param property_id: authorized property id
     :param start_at: start date/time of the period in the format YYYYMMDDHHmm
     :param end_at: end date/time of the period in the format YYYYMMDDHHmm
     :return: consumption data list
     """
-    # API validation
-    if host is None:
-        _LOGGER.error("API host URL not specified")
-        raise ValueError("API host URL error")
-    
-    if api_key is None:
-        _LOGGER.error("API key not specified")
-        raise ValueError("API key error")
-
-    # property_id validation
-    if not re.search(r'[0-9]{13}||[0-9]{9}', property_id):
-        _LOGGER.error("Invalid value for `property_id`, must conform to the pattern `/[0-9]{13}||[0-9]{9}/`")
-        raise ValueError("Invalid value for parameter `property_id`, must conform to the pattern `/[0-9]{13}||[0-9]{9}/`")
-
-    # n3rgy data api request
-    url = f'{host}/{property_id}/electricity/consumption/1?start={start_at}&end={end_at}&granularity=halfhour'
-    headers = CaseInsensitiveDict()
-    headers["Authorization"] = api_key
-    response = requests.get(url, headers=headers)
+    # request 
+    response = api.read_consumption(
+        property_id=property_id,
+        utility="electricity",
+        element="1",
+        consumption="consumption",
+        start=start_at,
+        end=end_at,
+        granularity="halfhour",  # granularity of the consumption data
+    )
     return response
 
 
