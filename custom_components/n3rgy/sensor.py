@@ -17,7 +17,7 @@ import re
 import requests
 
 from requests.structures import CaseInsensitiveDict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from requests.exceptions import ConnectionError as ConnectError, HTTPError, Timeout
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
