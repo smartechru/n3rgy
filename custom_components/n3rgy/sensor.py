@@ -24,6 +24,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from homeassistant.const import(
     ATTR_ATTRIBUTION,
+    CONF_HOST,
+    CONF_API_KEY
 )
 from .const import (
     CONF_PROPERTY_ID,
