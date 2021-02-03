@@ -1,6 +1,6 @@
 {
     "name": "n3rgy",
-    "zip_release": true,
+    "zip_release": false,
     "filename": "n3rgy.zip",
     "domains": ["n3rgy", "sensor"],
     "iot_class": "Local Push",

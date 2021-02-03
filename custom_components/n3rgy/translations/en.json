@@ -8,7 +8,8 @@
                 "data": {
                     "name": "Name",
                     "host": "Host",
-                    "api_key": "API Key"
+                    "api_key": "API Key",
+                    "property_id": "Property ID (can be either an MPAN or MPRN)"
                 }
             }
         },
@@ -27,9 +28,8 @@
                 "title": "Options",
                 "description": "You can set the property id, start datetime, end datetime.",
                 "data": {
-                    "property_id": "Property ID",
-                    "start": "Start",
-                    "end": "End"
+                    "start": "Start (format: YYYYMMDDHHmm)",
+                    "end": "End (format: YYYYMMDDHHmm)"
                 }
             }
         }

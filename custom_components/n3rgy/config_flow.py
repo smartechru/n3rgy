@@ -26,7 +26,7 @@ from .const import (
     CONF_START,
     CONF_END,
     DEFAULT_NAME,
-    DEFAULT_DATE_TIME,
+    DEFAULT_PROPERTY_ID,
     DOMAIN
 )
 
@@ -42,6 +42,7 @@ class N3rgyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     config = {
         vol.Required(CONF_HOST): str,
         vol.Required(CONF_API_KEY): str,
+        vol.Required(CONF_PROPERTY_ID, default=DEFAULT_PROPERTY_ID): str,
         vol.Optional(CONF_NAME, default=DEFAULT_NAME): str
     }
 
@@ -96,9 +97,8 @@ class N3rgyOptionsFlow(config_entries.OptionsFlow):
     """Config flow options for AccuWeather."""
 
     config = {
-        vol.Required(CONF_PROPERTY_ID): str,
-        vol.Required(CONF_START, default=DEFAULT_DATE_TIME): str,
-        vol.Required(CONF_END, default=DEFAULT_DATE_TIME): str
+        vol.Optional(CONF_START): str,
+        vol.Optional(CONF_END): str
     }
 
     def __init__(self, config_entry):
@@ -123,6 +123,8 @@ class N3rgyOptionsFlow(config_entries.OptionsFlow):
         :param user_input: user input
         :return: option form
         """
+        errors = {}
+
         if user_input is not None:
             try:
                 return self.async_create_entry(

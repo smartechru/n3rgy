@@ -20,7 +20,7 @@ CONF_END = "end"
 PLATFORM = "sensor"
 ATTRIBUTION = "Powered by n3rgy Data"
 DEFAULT_NAME = "Power"
-DEFAULT_DATE_TIME = "YYYYMMDDHHmm"
+DEFAULT_PROPERTY_ID = "1234567891008"
 SENSOR_NAME = "consumption"
 SENSOR_TYPE = "usage"
 

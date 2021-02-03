@@ -72,17 +72,23 @@ async def async_setup_entry(hass, entry, async_add_entities):
         :return: consumption value
         """
         try:
+            # period exception handler
+            if start_at is None:
+                start_at = datetime.now() + timedelta(minutes=-30)
+                start_at = start_at.strftime("%Y%m%d%H%M")
+            if end_at is None:
+                end_at = datetime.now()
+                end_at = end_at.strftime("%Y%m%d%H%M")
+
             # fetch n3rgy data
-            # start_at = datetime.now() + timedelta(minutes=-30)
-            # end_at = datetime.now()
             with async_timeout.timeout(_TIME_INTERVAL_SEC):
                 response = await hass.async_add_executor_job(
                     do_read_consumption,
                     host,
                     api_key,
                     property_id,
-                    start_at, # start_at.strftime("%Y%m%d%H%M"),
-                    end_at # end_at.strftime("%Y%m%d%H%M"),
+                    start_at,
+                    end_at
                 )
 
                 # logging
@@ -124,23 +130,31 @@ def do_read_consumption(host, api_key, property_id, start_at, end_at):
     """
     # API validation
     if host is None:
-        _LOGGER.error("API host URL not specified")
         raise ValueError("API host URL error")
     
     if api_key is None:
-        _LOGGER.error("API key not specified")
         raise ValueError("API key error")
 
     # property_id validation
     if not re.search(r'[0-9]{13}||[0-9]{9}', property_id):
-        _LOGGER.error("Invalid value for `property_id`, must conform to the pattern `/[0-9]{13}||[0-9]{9}/`")
-        raise ValueError("Invalid value for parameter `property_id`, must conform to the pattern `/[0-9]{13}||[0-9]{9}/`")
+        raise ValueError("Invalid value for parameter `property_id`, must be either an MPAN or MPRN")
+
+    # start date/time validation
+    if not re.search(r'[0-9]{12}', start_at):
+        raise ValueError("Invalid value for `start`, must conform to the pattern `YYYYMMDDHHmm`")
+    
+    # end date/time validation
+    if not re.search(r'[0-9]{12}', start_at):
+        raise ValueError("Invalid value for `end`, must conform to the pattern `YYYYMMDDHHmm`")
 
     # n3rgy data api request
     url = f'{host}/{property_id}/electricity/consumption/1?start={start_at}&end={end_at}&granularity=halfhour'
     headers = CaseInsensitiveDict()
     headers["Authorization"] = api_key
     response = requests.get(url, headers=headers)
+
+    # logging
+    _LOGGER.info(f"Response: {response.body}")
     return response
 
 
