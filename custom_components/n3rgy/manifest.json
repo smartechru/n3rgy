@@ -1,0 +1,13 @@
+{
+    "domain": "n3rgy",
+    "name": "n3rgy data",
+    "documentation": "https://github.com/smartechru/n3rgy",
+    "dependencies": [],
+    "config_flow": true,
+    "codeowners": [
+        "@smartechru"
+    ],
+    "requirements": [
+        "n3rgy"
+    ]
+}
