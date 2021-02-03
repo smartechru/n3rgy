@@ -80,7 +80,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
                 )
 
                 # logging
-                _LOGGER.debug(f"Response: {str(response)}")
+                _LOGGER.debug(f"Response code: {str(response.status_code)}")
                 return response
         
         except (TimeoutError) as timeout_err:
