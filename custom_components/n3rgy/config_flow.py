@@ -25,6 +25,7 @@ from .const import (
     CONF_START,
     CONF_END,
     DEFAULT_NAME,
+    DEFAULT_DATE_TIME,
     DOMAIN
 )
 
@@ -95,8 +96,8 @@ class N3rgyOptionsFlow(config_entries.OptionsFlow):
 
     config = {
         vol.Required(CONF_PROPERTY_ID): str,
-        vol.Required(CONF_START): str,
-        vol.Required(CONF_END): str
+        vol.Required(CONF_START, default=DEFAULT_DATE_TIME): str,
+        vol.Required(CONF_END, default=DEFAULT_DATE_TIME): str
     }
 
     def __init__(self, config_entry):

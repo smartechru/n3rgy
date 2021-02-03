@@ -3,13 +3,12 @@
     "config": {
         "step": {
             "user": {
-                "title": "n3rgy data Api credential",
+                "title": "API Credential",
                 "description": "If you need help with the configuration have a look here: https://www.home-assistant.io/integrations/n3rgy/\n\nSome sensors are not enabled by default. You can enable them in the entity registry after the integration configuration.\nWeather forecast is not enabled by default. You can enable it in the integration options.",
                 "data": {
                     "name": "Name",
                     "host": "Host",
-                    "api_key": "API Key",
-                    "property_id": "Property ID"
+                    "api_key": "API Key"
                 }
             }
         },
@@ -20,6 +19,19 @@
         },
         "abort": {
             "single_instance_allowed": "Already configured. Only a single configuration possible."
+        }
+    },
+    "options": {
+        "step": {
+            "user": {
+                "title": "Options",
+                "description": "You can set the property id, start datetime, end datetime.",
+                "data": {
+                    "property_id": "Property ID",
+                    "start": "Start",
+                    "end": "End"
+                }
+            }
         }
     }
 }
