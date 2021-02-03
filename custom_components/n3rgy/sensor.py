@@ -29,6 +29,8 @@ from homeassistant.const import(
 )
 from .const import (
     CONF_PROPERTY_ID,
+    CONF_START,
+    CONF_END,
     ATTRIBUTION,
     DEFAULT_NAME,
     SENSOR_NAME,
@@ -52,10 +54,14 @@ async def async_setup_entry(hass, entry, async_add_entities):
     host = None
     api_key = None
     property_id = None
+    start_at = None
+    end_at = None
     if entry and entry.data:
         host = entry.data.get(CONF_HOST)
         api_key = entry.data.get(CONF_API_KEY)
         property_id = entry.data.get(CONF_PROPERTY_ID)
+        start_at = entry.data.get(CONF_START)
+        end_at = entry.data.get(CONF_END)
 
     async def async_update_data():
         """
@@ -67,16 +73,16 @@ async def async_setup_entry(hass, entry, async_add_entities):
         """
         try:
             # fetch n3rgy data
-            start_at = datetime.now() + timedelta(minutes=-30)
-            end_at = datetime.now()
+            # start_at = datetime.now() + timedelta(minutes=-30)
+            # end_at = datetime.now()
             with async_timeout.timeout(_TIME_INTERVAL_SEC):
                 response = await hass.async_add_executor_job(
                     do_read_consumption,
                     host,
                     api_key,
                     property_id,
-                    start_at.strftime("%Y%m%d%H%M"),
-                    end_at.strftime("%Y%m%d%H%M"),
+                    start_at, # start_at.strftime("%Y%m%d%H%M"),
+                    end_at # end_at.strftime("%Y%m%d%H%M"),
                 )
 
                 # logging
