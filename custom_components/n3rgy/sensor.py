@@ -1,7 +1,7 @@
 """
 Script file: sensor.py
 Created on: Jan 29, 2021
-Last modified on: Feb 3, 2021
+Last modified on: Feb 4, 2021
 
 Comments:
     Support for n3rgy data sensor
@@ -144,7 +144,7 @@ def do_read_consumption(host, api_key, property_id, start_at, end_at):
         raise ValueError("Invalid value for `start`, must conform to the pattern `YYYYMMDDHHmm`")
     
     # end date/time validation
-    if not re.search(r'[0-9]{12}', start_at):
+    if not re.search(r'[0-9]{12}', end_at):
         raise ValueError("Invalid value for `end`, must conform to the pattern `YYYYMMDDHHmm`")
 
     # n3rgy data api request

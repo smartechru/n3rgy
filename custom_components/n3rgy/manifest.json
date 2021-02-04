@@ -1,7 +1,7 @@
 {
     "domain": "n3rgy",
-    "version": "1.0.3",
-    "name": "n3rgy data",
+    "version": "1.0.6",
+    "name": "Smart Energy",
     "documentation": "https://github.com/smartechru/n3rgy",
     "dependencies": [],
     "config_flow": true,
