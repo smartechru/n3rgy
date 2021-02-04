@@ -154,8 +154,7 @@ def do_read_consumption(host, api_key, property_id, start_at, end_at):
     response = requests.get(url, headers=headers)
 
     # logging
-    if response.status_code = 200:
-        _LOGGER.info(f"Response: {response.body}")
+    _LOGGER.info(f"Response: {str(response.content)}")
     return response
 
 
