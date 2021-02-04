@@ -14,6 +14,7 @@ Notes:
 import logging
 import async_timeout
 import re
+import json
 import requests
 
 from requests.structures import CaseInsensitiveDict
@@ -82,18 +83,15 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     start_at,
                     end_at
                 )
-
-                # logging
-                _LOGGER.debug(f"Response code: {str(response.status_code)}")
                 return response
-        
+
         except (TimeoutError) as timeout_err:
             _LOGGER.error(f"Timeout communicating with API: {str(timeout_err)}")
             raise UpdateFailed("Timeout communicating with API") from timeout_err
         except (ConnectError, HTTPError, Timeout, ValueError, TypeError) as err:
             _LOGGER.error(f"Error communicating with API: {str(err)}")
             raise UpdateFailed(f"Error communicating with API: {err}") from err
-        
+
     coordinator = DataUpdateCoordinator(
         hass,
         _LOGGER,
@@ -138,7 +136,7 @@ def do_read_consumption(host, api_key, property_id, start_at, end_at):
 
     if not re.search(r'[0-9]{12}', start_at):
         raise ValueError("Invalid value for `start`, must conform to the pattern `YYYYMMDDHHmm`")
-    
+
     # end date/time validation and exception handler
     if end_at is None:
         end_at = datetime.now()
@@ -153,9 +151,20 @@ def do_read_consumption(host, api_key, property_id, start_at, end_at):
     headers["Authorization"] = api_key
     response = requests.get(url, headers=headers)
 
-    # logging
-    _LOGGER.info(f"Response: {str(response.content)}")
-    return response
+    # fetch data from response object
+    if response.status_code == 200:
+        try:
+            data = json.loads(response.text)
+        except ValueError:
+            data = response.text
+
+        # logging response data
+        _LOGGER.debug(f"Resource: {data['resource']}")
+        return data
+
+    # logging error
+    _LOGGER.error("Invalid API request")
+    return None
 
 
 class N3rgySensor(Entity):
@@ -202,7 +211,7 @@ class N3rgySensor(Entity):
         :return: sensor state
         """
         return self._state
-    
+
     @property
     def icon(self):
         """
@@ -220,7 +229,7 @@ class N3rgySensor(Entity):
         :return: data unit
         """
         if self._coordinator.data:
-            return self._coordinator.data.unit
+            return self._coordinator.data['unit']
         return None
 
     @property
@@ -263,7 +272,13 @@ class N3rgySensor(Entity):
             self._coordinator.async_add_listener(self.async_write_ha_state)
         )
         if self._coordinator.data:
-            self._state = self._coordinator.data.values
+            # get consumption value
+            value_list = self._coordinator.data['values']
+            values = [v['value'] for v in value_list]
+            
+            # logging
+            _LOGGER.debug(f"Consumption values: {values}")
+            self._state = f"{sum(values):.2f}"
 
     async def async_update(self):
         """

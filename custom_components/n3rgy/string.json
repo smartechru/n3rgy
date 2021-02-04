@@ -4,12 +4,14 @@
         "step": {
             "user": {
                 "title": "API Credential",
-                "description": "If you need help with the configuration have a look here: https://www.home-assistant.io/integrations/n3rgy/\n\nSome sensors are not enabled by default. You can enable them in the entity registry after the integration configuration.\nWeather forecast is not enabled by default. You can enable it in the integration options.",
+                "description": "If you need help with the configuration have a look here: https://www.home-assistant.io/integrations/n3rgy/\n\nSome sensors are not enabled by default. You can enable them in the entity registry after the integration configuration.",
                 "data": {
                     "name": "[%key:common::config_flow::data::name%]",
                     "host": "[%key:common::config_flow::data::host%]",
                     "api_key": "[%key:common::config_flow::data::api_key%]",
-                    "property_id": "Property ID (can be either an MPAN or MPRN)"
+                    "property_id": "Property ID (can be either an MPAN or MPRN)",
+                    "start": "Start (format: YYYYMMDDHHmm)",
+                    "end": "End (format: YYYYMMDDHHmm)"
                 }
             }
         },
@@ -26,7 +28,7 @@
         "step": {
             "user": {
                 "title": "Options",
-                "description": "You can set the property id, start datetime, end datetime.",
+                "description": "You can set the start datetime, end datetime.",
                 "data": {
                     "start": "Start (format: YYYYMMDDHHmm)",
                     "end": "End (format: YYYYMMDDHHmm)"

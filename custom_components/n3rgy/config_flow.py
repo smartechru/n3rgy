@@ -43,7 +43,9 @@ class N3rgyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         vol.Required(CONF_HOST): str,
         vol.Required(CONF_API_KEY): str,
         vol.Required(CONF_PROPERTY_ID, default=DEFAULT_PROPERTY_ID): str,
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME): str
+        vol.Optional(CONF_NAME, default=DEFAULT_NAME): str,
+        vol.Optional(CONF_START): str,
+        vol.Optional(CONF_END): str
     }
 
     async def async_step_user(self, user_input=None):
