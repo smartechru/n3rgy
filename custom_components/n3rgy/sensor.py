@@ -72,14 +72,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
         :return: consumption value
         """
         try:
-            # period exception handler
-            if start_at is None:
-                start_at = datetime.now() + timedelta(minutes=-30)
-                start_at = start_at.strftime("%Y%m%d%H%M")
-            if end_at is None:
-                end_at = datetime.now()
-                end_at = end_at.strftime("%Y%m%d%H%M")
-
             # fetch n3rgy data
             with async_timeout.timeout(_TIME_INTERVAL_SEC):
                 response = await hass.async_add_executor_job(
@@ -139,11 +131,19 @@ def do_read_consumption(host, api_key, property_id, start_at, end_at):
     if not re.search(r'[0-9]{13}||[0-9]{9}', property_id):
         raise ValueError("Invalid value for parameter `property_id`, must be either an MPAN or MPRN")
 
-    # start date/time validation
+    # start date/time validation and exception handler
+    if start_at is None:
+        start_at = datetime.now() + timedelta(minutes=-30)
+        start_at = start_at.strftime("%Y%m%d%H%M")
+
     if not re.search(r'[0-9]{12}', start_at):
         raise ValueError("Invalid value for `start`, must conform to the pattern `YYYYMMDDHHmm`")
     
-    # end date/time validation
+    # end date/time validation and exception handler
+    if end_at is None:
+        end_at = datetime.now()
+        end_at = end_at.strftime("%Y%m%d%H%M")
+
     if not re.search(r'[0-9]{12}', end_at):
         raise ValueError("Invalid value for `end`, must conform to the pattern `YYYYMMDDHHmm`")
 
