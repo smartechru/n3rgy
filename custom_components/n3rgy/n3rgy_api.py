@@ -10,7 +10,9 @@ Comments:
 import re
 import json
 import logging
+import base64
 import requests
+from requests.utils import requote_uri
 from requests.structures import CaseInsensitiveDict
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,46 +49,47 @@ class N3rgyGrantConsent:
         # api request headers
         headers = CaseInsensitiveDict()
         headers["Authorization"] = self.api_key
-        headers["Content-Type"] = "application/json"
 
         # api request body
         data = {
-            'mpxn': self.mpxn,
-            'apiKey': self.api_key
+            "mpxn": self.mpxn,
+            "apiKey": self.api_key
         }
 
         # call n3rgy api
-        data = None
-        response = requests.post(url, headers=headers, data=data)
+        res = None
+        response = requests.post(url, headers=headers, json=data)
 
         # fetch data from response object
         if response.status_code == StatusCode.ST_CREATED:
-            try:
-                data = json.loads(response.text)
-            except ValueError:
-                data = response.text    
-
-            # session created
-            _LOGGER.debug(f"Session ID: {data['sessionId']}")
+            res = response.json()
+            res = res['sessionId']
+            _LOGGER.debug(f"Session ID: {res}")
         else:
             # bad request
             _LOGGER.debug(f"Bad request: {response.status_code}")
         
-        return data
+        return res
 
-    def invocation_endpoint_url(self, base_url, session_id, concent_type, return_url, error_url):
+    def invocation_endpoint_url(self, base_url, session_id, consent_type, return_url, error_url):
         """
         Redirect the consumer to n3rgy data Grant Consent endpoint.
         The parameters must be encoded in Base64 and then URL Encoded.
         :param base_url: base URL to handover
         :param session_id: session id generated for a new grant consent process
-        :param concent_type: consent type {cin, ihdmac_full, ihdmac_4}
+        :param consent_type: consent type {cin, ihdmac_full, ihdmac_4}
         :param return_url: callback endpoint in a successful grant consent operation
         :param error_url: callback endpoint in an unsuccessful grant consent operation
         :return: none
         """
+        # encode query
+        query = f"sessionId={session_id}&mpxn={self.mpxn}&consentType={consent_type}&returnUrl={return_url}&errorUrl={error_url}"
+        encoded_bytes = base64.b64encode(query.encode())
+        encoded_query = encoded_bytes.decode()
+
         # api request url
-        url = f'{base_url}/consent'
+        url = f'{base_url}/consent/{encoded_query}'
+        _LOGGER.debug(f"Consent URL: {url}")
         
         # api request headers
         headers = CaseInsensitiveDict()

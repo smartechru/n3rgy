@@ -70,10 +70,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
             return response
 
         except (TimeoutError) as timeout_err:
-            _LOGGER.error(f"Timeout communicating with API: {str(timeout_err)}")
             raise UpdateFailed("Timeout communicating with API") from timeout_err
         except (ConnectError, HTTPError, Timeout, ValueError, TypeError) as err:
-            _LOGGER.error(f"Error communicating with API: {str(err)}")
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
     coordinator = DataUpdateCoordinator(
@@ -116,6 +114,18 @@ def do_read_consumption(config_entry):
         end = config_entry.options.get(CONF_END)
 
     try:
+        # get operation authorization token
+        consent_token_url = 'https://consent.data.n3rgy.com'
+        consent = N3rgyGrantConsent(property_id, api_key)
+        session_id = consent.get_operation_authorization_token(consent_token_url)
+
+        if session_id:
+            # handover URL
+            handover_url = 'https://portal-consent.data.n3rgy.com'
+            return_url = 'https://cloudkb.co.uk'
+            error_url = 'https://cloudkb.co.uk'
+            consent.invocation_endpoint_url(handover_url, session_id, 'ihdmac_4', return_url, error_url)
+
         # create n3rgy data api instance
         api = N3rgyDataApi(host, api_key, property_id)
         data = api.read_consumption(start, end)
