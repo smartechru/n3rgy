@@ -8,6 +8,7 @@ Comments:
 """
 
 DOMAIN = "n3rgy"
+DATA_LISTENER = "listener"
 
 # config options
 CONF_PROPERTY_AUTHORIZED = "property_authorized"

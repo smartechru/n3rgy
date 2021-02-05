@@ -104,7 +104,7 @@ class N3rgyOptionsFlow(config_entries.OptionsFlow):
         :param config_entry: config entry
         :return: none
         """
-        self.entry = config_entry
+        self.config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         """
@@ -134,8 +134,8 @@ class N3rgyOptionsFlow(config_entries.OptionsFlow):
 
         # schema
         config = {
-            vol.Optional(CONF_START, default=self.entry.options.get(CONF_START)): str,
-            vol.Optional(CONF_END, default=self.entry.options.get(CONF_END)): str
+            vol.Optional(CONF_START, default=self.config_entry.options.get(CONF_START)): str,
+            vol.Optional(CONF_END, default=self.config_entry.options.get(CONF_END)): str
         }
 
         return self.async_show_form(

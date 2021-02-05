@@ -155,7 +155,7 @@ class N3rgyDataApi:
                 raise ValueError("Invalid value for `end`, must conform to the pattern `YYYYMMDDHHmm`")
 
             # n3rgy data api request with query params
-            url = f'{url}?start={startt}&end={end}&granularity=halfhour'
+            url = f'{url}?start={start}&end={end}&granularity=halfhour'
         
         # api request headers
         headers = CaseInsensitiveDict()

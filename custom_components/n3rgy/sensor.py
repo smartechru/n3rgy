@@ -48,24 +48,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
     :param entry: config entry
     :return: none
     """
-    # read the configuration data
-    host = None
-    api_key = None
-    property_id = None
-    start = None
-    end = None
-
-    # check the input data
-    if entry:
-        if entry.data:
-            host = entry.data.get(CONF_HOST)
-            api_key = entry.data.get(CONF_API_KEY)
-            property_id = entry.data.get(CONF_PROPERTY_ID)
-    
-        if entry.options:
-            start = entry.options.get(CONF_START)
-            end = entry.options.get(CONF_END)
-
+    # in-line function
     async def async_update_data():
         """
         Fetch data from API endpoint.
@@ -76,16 +59,11 @@ async def async_setup_entry(hass, entry, async_add_entities):
         """
         try:
             # fetch n3rgy data
-            with async_timeout.timeout(_TIME_INTERVAL_SEC):
-                response = await hass.async_add_executor_job(
-                    do_read_consumption,
-                    host,
-                    api_key,
-                    property_id,
-                    start,
-                    end
-                )
-                return response
+            response = await hass.async_add_executor_job(
+                do_read_consumption,
+                entry
+            )
+            return response
 
         except (TimeoutError) as timeout_err:
             _LOGGER.error(f"Timeout communicating with API: {str(timeout_err)}")
@@ -106,20 +84,33 @@ async def async_setup_entry(hass, entry, async_add_entities):
     await coordinator.async_refresh()
 
     # add sensor
-    async_add_entities([N3rgySensor(coordinator)])
+    async_add_entities([N3rgySensor(coordinator)], True)
 
 
-def do_read_consumption(host, api_key, property_id, start, end):
+def do_read_consumption(config_entry):
     """
     List consumption values for an utility type on the provided accessible 
     property, within a certain time frame
-    :param host: host URL
-    :param api_key: API key
-    :param property_id: authorized property id
-    :param start: start date/time of the period in the format YYYYMMDDHHmm
-    :param end: end date/time of the period in the format YYYYMMDDHHmm
+    :param config_entry: config entry
     :return: consumption data list
     """
+    # read the configuration data
+    host = None  # host base url
+    api_key = None  # api key
+    property_id = None  # authorized property id
+    start = None  # start date/time of the period in the format YYYYMMDDHHmm
+    end = None  # end date/time of the period in the format YYYYMMDDHHmm
+
+    # check the input data
+    if config_entry.data:
+        host = config_entry.data.get(CONF_HOST)
+        api_key = config_entry.data.get(CONF_API_KEY)
+        property_id = config_entry.data.get(CONF_PROPERTY_ID)
+
+    if config_entry.options:
+        start = config_entry.options.get(CONF_START)
+        end = config_entry.options.get(CONF_END)
+
     try:
         # create n3rgy data api instance
         api = N3rgyDataApi(host, api_key, property_id)
