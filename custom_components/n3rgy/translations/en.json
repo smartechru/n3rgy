@@ -3,15 +3,13 @@
     "config": {
         "step": {
             "user": {
-                "title": "API Credential",
-                "description": "If you need help with the configuration have a look here: https://www.home-assistant.io/integrations/n3rgy/\n\nSome sensors are not enabled by default. You can enable them in the entity registry after the integration configuration.",
+                "title": "Sensor Configuration",
+                "description": "If you need help with the configuration have a look here:\nhttps://github.com/smartechru/n3rgy.",
                 "data": {
                     "name": "Name",
                     "host": "Host",
                     "api_key": "API Key",
-                    "property_id": "Property ID (can be either an MPAN or MPRN)",
-                    "start": "Start (format: YYYYMMDDHHmm)",
-                    "end": "End (format: YYYYMMDDHHmm)"
+                    "property_id": "Property ID (can be either an MPAN or MPRN)"
                 }
             }
         },
@@ -27,8 +25,8 @@
     "options": {
         "step": {
             "user": {
-                "title": "Options",
-                "description": "You can set the start datetime, end datetime.",
+                "title": "Sensor Options",
+                "description": "You can set the start datetime, end datetime.\nIf you need help with the configuration have a look here:\nhttps://github.com/smartechru/n3rgy.",
                 "data": {
                     "start": "Start (format: YYYYMMDDHHmm)",
                     "end": "End (format: YYYYMMDDHHmm)"

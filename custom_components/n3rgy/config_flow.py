@@ -1,7 +1,7 @@
 """
 Script file: config_flow.py
 Created on: Jan 31, 2021
-Last modified on: Feb 4, 2021
+Last modified on: Feb 5, 2021
 
 Comments:
     Config flow for n3rgy data
@@ -26,6 +26,7 @@ from .const import (
     CONF_START,
     CONF_END,
     DEFAULT_NAME,
+    DEFAULT_HOST,
     DEFAULT_PROPERTY_ID,
     DOMAIN
 )
@@ -38,15 +39,6 @@ class N3rgyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1.0
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
-
-    config = {
-        vol.Required(CONF_HOST): str,
-        vol.Required(CONF_API_KEY): str,
-        vol.Required(CONF_PROPERTY_ID, default=DEFAULT_PROPERTY_ID): str,
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME): str,
-        vol.Optional(CONF_START): str,
-        vol.Optional(CONF_END): str
-    }
 
     async def async_step_user(self, user_input=None):
         """
@@ -69,9 +61,17 @@ class N3rgyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
 
+        # schema
+        config = {
+            vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
+            vol.Required(CONF_API_KEY): str,
+            vol.Required(CONF_PROPERTY_ID, default=DEFAULT_PROPERTY_ID): str,
+            vol.Optional(CONF_NAME, default=DEFAULT_NAME): str
+        }
+
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(self.config),
+            data_schema=vol.Schema(config),
             errors=errors
         )
 
@@ -98,18 +98,13 @@ class N3rgyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class N3rgyOptionsFlow(config_entries.OptionsFlow):
     """Config flow options for AccuWeather."""
 
-    config = {
-        vol.Optional(CONF_START): str,
-        vol.Optional(CONF_END): str
-    }
-
     def __init__(self, config_entry):
         """
         Initialize n3rgy options flow
         :param config_entry: config entry
         :return: none
         """
-        self._entry = config_entry
+        self.entry = config_entry
 
     async def async_step_init(self, user_input=None):
         """
@@ -137,8 +132,14 @@ class N3rgyOptionsFlow(config_entries.OptionsFlow):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
 
+        # schema
+        config = {
+            vol.Optional(CONF_START, default=self.entry.options.get(CONF_START)): str,
+            vol.Optional(CONF_END, default=self.entry.options.get(CONF_END)): str
+        }
+
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(self.config),
+            data_schema=vol.Schema(config),
             errors=errors
         )

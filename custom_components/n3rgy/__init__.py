@@ -1,7 +1,7 @@
 """
 Script file: __init__.py
 Created on: Jan 29, 2021
-Last modified on: Feb 3, 2021
+Last modified on: Feb 5, 2021
 
 Comments:
     n3rgy data API integration
@@ -41,6 +41,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     :param entry: config entry
     :return: true if successful
     """
+    # update options
+    # entry.options = entry.data
+    # entry.add_update_listener(update_listener)
+    
     # add sensor
     hass.async_create_task(
         hass.config_entries.async_forward_entry_setup(entry, PLATFORM)
@@ -63,3 +67,16 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
     except ValueError as ex:
         _LOGGER.error(f"Failed to remove sensor: {str(ex)}")
         return False
+
+async def update_listener(hass, entry):
+    """
+    Update listener
+    :param hass: home assistant object
+    :param entry: config entry
+    :return: none
+    """
+    entry.data = entry.options
+    await hass.config_entries.async_forward_entry_unload(entry, PLATFORM)
+    hass.async_add_job(
+        hass.config_entries.async_forward_entry_setup(entry, PLATFORM)
+    )

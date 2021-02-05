@@ -1,7 +1,7 @@
 """
 Script file: sensor.py
 Created on: Jan 29, 2021
-Last modified on: Feb 4, 2021
+Last modified on: Feb 5, 2021
 
 Comments:
     Support for n3rgy data sensor
@@ -13,12 +13,8 @@ Notes:
 
 import logging
 import async_timeout
-import re
-import json
-import requests
 
-from requests.structures import CaseInsensitiveDict
-from datetime import datetime, timedelta
+from datetime import timedelta
 from requests.exceptions import ConnectionError as ConnectError, HTTPError, Timeout
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -39,6 +35,7 @@ from .const import (
     ICON,
     PLATFORM
 )
+from .n3rgy_api import N3rgyDataApi, N3rgyGrantConsent
 
 _TIME_INTERVAL_SEC = 3600
 _LOGGER = logging.getLogger(__name__)
@@ -55,14 +52,19 @@ async def async_setup_entry(hass, entry, async_add_entities):
     host = None
     api_key = None
     property_id = None
-    start_at = None
-    end_at = None
-    if entry and entry.data:
-        host = entry.data.get(CONF_HOST)
-        api_key = entry.data.get(CONF_API_KEY)
-        property_id = entry.data.get(CONF_PROPERTY_ID)
-        start_at = entry.data.get(CONF_START)
-        end_at = entry.data.get(CONF_END)
+    start = None
+    end = None
+
+    # check the input data
+    if entry:
+        if entry.data:
+            host = entry.data.get(CONF_HOST)
+            api_key = entry.data.get(CONF_API_KEY)
+            property_id = entry.data.get(CONF_PROPERTY_ID)
+    
+        if entry.options:
+            start = entry.options.get(CONF_START)
+            end = entry.options.get(CONF_END)
 
     async def async_update_data():
         """
@@ -80,8 +82,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
                     host,
                     api_key,
                     property_id,
-                    start_at,
-                    end_at
+                    start,
+                    end
                 )
                 return response
 
@@ -107,64 +109,26 @@ async def async_setup_entry(hass, entry, async_add_entities):
     async_add_entities([N3rgySensor(coordinator)])
 
 
-def do_read_consumption(host, api_key, property_id, start_at, end_at):
+def do_read_consumption(host, api_key, property_id, start, end):
     """
     List consumption values for an utility type on the provided accessible 
     property, within a certain time frame
     :param host: host URL
     :param api_key: API key
     :param property_id: authorized property id
-    :param start_at: start date/time of the period in the format YYYYMMDDHHmm
-    :param end_at: end date/time of the period in the format YYYYMMDDHHmm
+    :param start: start date/time of the period in the format YYYYMMDDHHmm
+    :param end: end date/time of the period in the format YYYYMMDDHHmm
     :return: consumption data list
     """
-    # API validation
-    if host is None:
-        raise ValueError("API host URL error")
-    
-    if api_key is None:
-        raise ValueError("API key error")
-
-    # property_id validation
-    if not re.search(r'[0-9]{13}||[0-9]{9}', property_id):
-        raise ValueError("Invalid value for parameter `property_id`, must be either an MPAN or MPRN")
-
-    # start date/time validation and exception handler
-    if start_at is None:
-        start_at = datetime.now() + timedelta(minutes=-30)
-        start_at = start_at.strftime("%Y%m%d%H%M")
-
-    if not re.search(r'[0-9]{12}', start_at):
-        raise ValueError("Invalid value for `start`, must conform to the pattern `YYYYMMDDHHmm`")
-
-    # end date/time validation and exception handler
-    if end_at is None:
-        end_at = datetime.now()
-        end_at = end_at.strftime("%Y%m%d%H%M")
-
-    if not re.search(r'[0-9]{12}', end_at):
-        raise ValueError("Invalid value for `end`, must conform to the pattern `YYYYMMDDHHmm`")
-
-    # n3rgy data api request
-    url = f'{host}/{property_id}/electricity/consumption/1?start={start_at}&end={end_at}&granularity=halfhour'
-    headers = CaseInsensitiveDict()
-    headers["Authorization"] = api_key
-    response = requests.get(url, headers=headers)
-
-    # fetch data from response object
-    if response.status_code == 200:
-        try:
-            data = json.loads(response.text)
-        except ValueError:
-            data = response.text
-
-        # logging response data
-        _LOGGER.debug(f"Resource: {data['resource']}")
+    try:
+        # create n3rgy data api instance
+        api = N3rgyDataApi(host, api_key, property_id)
+        data = api.read_consumption(start, end)
         return data
-
-    # logging error
-    _LOGGER.error("Invalid API request")
-    return None
+    except ValueError as ex:
+        # error handling
+        _LOGGER.error(f"Failed to initialize API: {str(ex)}")
+        return None
 
 
 class N3rgySensor(Entity):
@@ -172,14 +136,13 @@ class N3rgySensor(Entity):
 
     def __init__(self, coordinator):
         """
-        Initialize for n3rgy data sensor class
+        Initialize n3rgy data sensor class
         :param coordinator: data coordinator object
         :return: none
         """
         self._name = SENSOR_NAME
         self._type = SENSOR_TYPE
         self._state = None
-        self._unit_of_measurement = None
         self._coordinator = coordinator
         self._attributes = {
             ATTR_ATTRIBUTION: ATTRIBUTION,
