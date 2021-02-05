@@ -14,7 +14,7 @@ Notes:
 import logging
 import async_timeout
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from requests.exceptions import ConnectionError as ConnectError, HTTPError, Timeout
 from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -28,12 +28,16 @@ from .const import (
     CONF_PROPERTY_ID,
     CONF_START,
     CONF_END,
+    PLATFORM,
     ATTRIBUTION,
     DEFAULT_NAME,
     SENSOR_NAME,
     SENSOR_TYPE,
     ICON,
-    PLATFORM
+    INPUT_DATETIME_FORMAT,
+    ATTR_DATETIME_FORMAT,
+    ATTR_START_DATETIME,
+    ATTR_END_DATETIME
 )
 from .n3rgy_api import N3rgyDataApi, N3rgyGrantConsent
 
@@ -135,9 +139,6 @@ class N3rgySensor(Entity):
         self._type = SENSOR_TYPE
         self._state = None
         self._coordinator = coordinator
-        self._attributes = {
-            ATTR_ATTRIBUTION: ATTRIBUTION,
-        }
 
     @property
     def name(self):
@@ -203,9 +204,24 @@ class N3rgySensor(Entity):
         :param: none
         :return: state attributes
         """
+        attributes = {
+            ATTR_ATTRIBUTION: ATTRIBUTION,
+        }
         if not self._coordinator.data:
-            return None
-        return self._attributes
+            return attributes
+        
+        # reformat date/time
+        try:
+            str_start = self._coordinator.data['start']
+            str_end = self._coordinator.data['end']
+            dt_start = datetime.strptime(str_start, INPUT_DATETIME_FORMAT)
+            dt_end = datetime.strptime(str_end, INPUT_DATETIME_FORMAT)
+            attributes[ATTR_START_DATETIME] = datetime.strftime(dt_start, ATTR_DATETIME_FORMAT)
+            attributes[ATTR_END_DATETIME] = datetime.strftime(dt_end, ATTR_DATETIME_FORMAT)
+        except:
+            _LOGGER.debug("Failed to reformat datetime object")
+        
+        return attributes
 
     @property
     def available(self):

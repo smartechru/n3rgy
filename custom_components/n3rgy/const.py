@@ -11,19 +11,24 @@ DOMAIN = "n3rgy"
 DATA_LISTENER = "listener"
 
 # config options
-CONF_PROPERTY_AUTHORIZED = "property_authorized"
-CONF_PROPERTY_FORBIDDEN = "property_forbidden"
 CONF_PROPERTY_ID = "property_id"
 CONF_START = "start"
 CONF_END = "end"
 
 # properties
 PLATFORM = "sensor"
-ATTRIBUTION = "Powered by n3rgy Data"
+ATTRIBUTION = "Energy consumption data from https://data.n3rgy.com, delivered by n3rgy data Ltd."
 DEFAULT_NAME = "n3rgy"
 DEFAULT_HOST = "https://sandboxapi.data.n3rgy.com"
 DEFAULT_PROPERTY_ID = "1234567891008"
 SENSOR_NAME = "data"
 SENSOR_TYPE = "usage"
-
 ICON = "mdi:flash"
+
+# attributes
+ATTR_START_DATETIME = "Start datetime"
+ATTR_END_DATETIME = "End datetime"
+
+# date/time formatter
+INPUT_DATETIME_FORMAT = "%Y%m%d%H%M"
+ATTR_DATETIME_FORMAT = "%m/%d/%Y %H:%M"
