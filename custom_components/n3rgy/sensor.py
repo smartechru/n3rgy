@@ -102,6 +102,9 @@ def do_read_consumption(config_entry):
     end = None  # end date/time of the period in the format YYYYMMDDHHmm
     live_env = DEFAULT_LIVE_ENVIRONMENT  # live environment
 
+    # return value
+    data = None
+
     # check the input data
     if config_entry.data:
         host = config_entry.data.get(CONF_HOST)
@@ -135,14 +138,12 @@ def do_read_consumption(config_entry):
                 # create n3rgy data api instance
                 api = N3rgyDataApi(host, api_key, property_id)
                 data = api.read_consumption(start, end)
-                return data
 
     except ValueError as ex:
         # error handling
         _LOGGER.warning(f"Failed to initialize API: {str(ex)}")
     finally:
-        _LOGGER.warning("Failed to read power consumption data")
-        return None
+        return data
 
 
 class N3rgySensor(Entity):
