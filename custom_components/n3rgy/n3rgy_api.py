@@ -1,7 +1,7 @@
 """
 Script file: n3rgy_api.py
 Created on: Jan Feb 4, 2021
-Last modified on: Feb 5, 2021
+Last modified on: Feb 9, 2021
 
 Comments:
     n3rgy data api functions
@@ -12,7 +12,6 @@ import json
 import logging
 import base64
 import requests
-from requests.utils import requote_uri
 from requests.structures import CaseInsensitiveDict
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,7 +66,7 @@ class N3rgyGrantConsent:
             _LOGGER.debug(f"Session ID: {res}")
         else:
             # bad request
-            _LOGGER.debug(f"Bad request: {response.status_code}")
+            _LOGGER.warning(f"Bad request: {response.status_code}")
         
         return res
 
@@ -80,7 +79,7 @@ class N3rgyGrantConsent:
         :param consent_type: consent type {cin, ihdmac_full, ihdmac_4}
         :param return_url: callback endpoint in a successful grant consent operation
         :param error_url: callback endpoint in an unsuccessful grant consent operation
-        :return: none
+        :return: True if successful, False otherwise
         """
         # encode query
         query = f"sessionId={session_id}&mpxn={self.mpxn}&consentType={consent_type}&returnUrl={return_url}&errorUrl={error_url}"
@@ -100,9 +99,11 @@ class N3rgyGrantConsent:
         if response.status_code == StatusCode.ST_OK:
             # successful grant consent
             _LOGGER.debug("Handover done")
+            return True
         else:
             # grant consent failed
-            _LOGGER.debug(f"Grant consent failed: {response.status_code}")
+            _LOGGER.warning(f"Grant consent failed: {response.status_code}")
+            return False
 
 
 class N3rgyDataApi:
@@ -179,6 +180,6 @@ class N3rgyDataApi:
             _LOGGER.debug(f"Resource: {data['resource']}")
         else:
             # logging error
-            _LOGGER.error(f"Invalid API request: {response.status_code}")
+            _LOGGER.warning(f"Invalid API request: {response.status_code}")
 
         return data

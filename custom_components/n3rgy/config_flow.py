@@ -1,14 +1,10 @@
 """
 Script file: config_flow.py
 Created on: Jan 31, 2021
-Last modified on: Feb 5, 2021
+Last modified on: Feb 9, 2021
 
 Comments:
     Config flow for n3rgy data
-
-Notes:
-    This API was not published to PyPI store yet.
-    We can use simple request function.
 """
 
 import logging
@@ -23,11 +19,13 @@ from homeassistant.const import (
 )
 from .const import (
     CONF_PROPERTY_ID,
+    CONF_ENVIRONMENT,
     CONF_START,
     CONF_END,
     DEFAULT_NAME,
     DEFAULT_HOST,
     DEFAULT_PROPERTY_ID,
+    DEFAULT_LIVE_ENVIRONMENT,
     DOMAIN
 )
 
@@ -133,7 +131,12 @@ class N3rgyOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "unknown"
 
         # schema
+        env = self.config_entry.options.get(CONF_ENVIRONMENT)
+        if env is None:
+            env = DEFAULT_LIVE_ENVIRONMENT
+
         config = {
+            vol.Optional(CONF_ENVIRONMENT, default=env): bool,
             vol.Optional(CONF_START, default=self.config_entry.options.get(CONF_START)): str,
             vol.Optional(CONF_END, default=self.config_entry.options.get(CONF_END)): str
         }

@@ -1,14 +1,10 @@
 """
 Script file: sensor.py
 Created on: Jan 29, 2021
-Last modified on: Feb 5, 2021
+Last modified on: Feb 9, 2021
 
 Comments:
     Support for n3rgy data sensor
-
-Notes:
-    This API was not published to PyPI store yet.
-    We can use simple request function.
 """
 
 import logging
@@ -26,11 +22,13 @@ from homeassistant.const import(
 )
 from .const import (
     CONF_PROPERTY_ID,
+    CONF_ENVIRONMENT,
     CONF_START,
     CONF_END,
     PLATFORM,
     ATTRIBUTION,
     DEFAULT_NAME,
+    DEFAULT_LIVE_ENVIRONMENT,
     SENSOR_NAME,
     SENSOR_TYPE,
     ICON,
@@ -102,6 +100,7 @@ def do_read_consumption(config_entry):
     property_id = None  # authorized property id
     start = None  # start date/time of the period in the format YYYYMMDDHHmm
     end = None  # end date/time of the period in the format YYYYMMDDHHmm
+    live_env = DEFAULT_LIVE_ENVIRONMENT  # live environment
 
     # check the input data
     if config_entry.data:
@@ -110,29 +109,39 @@ def do_read_consumption(config_entry):
         property_id = config_entry.data.get(CONF_PROPERTY_ID)
 
     if config_entry.options:
+        live_env = config_entry.options.get(CONF_ENVIRONMENT)
         start = config_entry.options.get(CONF_START)
         end = config_entry.options.get(CONF_END)
 
     try:
-        # get operation authorization token
-        consent_token_url = 'https://consent.data.n3rgy.com'
-        consent = N3rgyGrantConsent(property_id, api_key)
-        session_id = consent.get_operation_authorization_token(consent_token_url)
+        # select get operation authorization base url
+        consent_token_base_url = 'https://consentsandbox.data.n3rgy.com'
+        if live_env:
+            consent_token_base_url = 'https://consent.data.n3rgy.com'
 
+        # call api
+        consent = N3rgyGrantConsent(property_id, api_key)
+        session_id = consent.get_operation_authorization_token(consent_token_base_url)
         if session_id:
-            # handover URL
-            handover_url = 'https://portal-consent.data.n3rgy.com'
+            # select handover base URL
+            handover_base_url = 'https://portal-consent-sandbox.data.n3rgy.com/'
+            if live_env:
+                handover_base_url = 'https://portal-consent.data.n3rgy.com'
+
+            # define return/error url to be redirected
             return_url = 'https://cloudkb.co.uk'
             error_url = 'https://cloudkb.co.uk'
-            consent.invocation_endpoint_url(handover_url, session_id, 'ihdmac_4', return_url, error_url)
+            if consent.invocation_endpoint_url(handover_base_url, session_id, 'ihdmac_full', return_url, error_url):
+                # create n3rgy data api instance
+                api = N3rgyDataApi(host, api_key, property_id)
+                data = api.read_consumption(start, end)
+                return data
 
-        # create n3rgy data api instance
-        api = N3rgyDataApi(host, api_key, property_id)
-        data = api.read_consumption(start, end)
-        return data
     except ValueError as ex:
         # error handling
-        _LOGGER.error(f"Failed to initialize API: {str(ex)}")
+        _LOGGER.warning(f"Failed to initialize API: {str(ex)}")
+    finally:
+        _LOGGER.warning("Failed to read power consumption data")
         return None
 
 
@@ -229,7 +238,7 @@ class N3rgySensor(Entity):
             attributes[ATTR_START_DATETIME] = datetime.strftime(dt_start, ATTR_DATETIME_FORMAT)
             attributes[ATTR_END_DATETIME] = datetime.strftime(dt_end, ATTR_DATETIME_FORMAT)
         except:
-            _LOGGER.debug("Failed to reformat datetime object")
+            _LOGGER.warning("Failed to reformat datetime object")
         
         return attributes
 
@@ -257,7 +266,7 @@ class N3rgySensor(Entity):
             values = [v['value'] for v in value_list]
             
             # logging
-            _LOGGER.debug(f"Consumption values: {values}")
+            # _LOGGER.debug(f"Consumption values: {values}")
             self._state = f"{sum(values):.2f}"
 
     async def async_update(self):

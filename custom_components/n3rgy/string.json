@@ -26,8 +26,9 @@
         "step": {
             "user": {
                 "title": "Sensor Options",
-                "description": "You can set the start datetime, end datetime.\nIf you need help with the configuration have a look here:\nhttps://github.com/smartechru/n3rgy.",
+                "description": "You can set the environment, start datetime, end datetime.\nA 'Grant Consent' service in a Live environment will be available soon, where customers may request consent for real MPxNs from their clients (the consumers) and then integrate with n3rgy data's 'Grant Consent' portal. This will only be available for Live Users.\nIf you need help with the configuration have a look here:\nhttps://github.com/smartechru/n3rgy.",
                 "data": {
+                    "environment": "Live environment (for real MPxNs)",
                     "start": "Start (format: YYYYMMDDHHmm)",
                     "end": "End (format: YYYYMMDDHHmm)"
                 }

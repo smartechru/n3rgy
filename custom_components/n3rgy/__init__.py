@@ -1,14 +1,10 @@
 """
 Script file: __init__.py
 Created on: Jan 29, 2021
-Last modified on: Feb 5, 2021
+Last modified on: Feb 9, 2021
 
 Comments:
     n3rgy data API integration
-
-Notes:
-    This API was not published to PyPI store yet
-    We can use simple request function
 """
 
 import logging
@@ -65,7 +61,7 @@ async def async_unload_entry(hass, config_entry):
         _LOGGER.debug("Successfully removed sensor from the n3rgy integration!")
         return True
     except ValueError as ex:
-        _LOGGER.error(f"Failed to remove sensor: {str(ex)}")
+        _LOGGER.warning(f"Failed to remove sensor: {str(ex)}")
         return False
 
 
