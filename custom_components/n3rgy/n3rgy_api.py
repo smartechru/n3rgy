@@ -1,7 +1,7 @@
 """
 Script file: n3rgy_api.py
 Created on: Jan Feb 4, 2021
-Last modified on: Feb 9, 2021
+Last modified on: Feb 10, 2021
 
 Comments:
     n3rgy data api functions
@@ -145,9 +145,10 @@ class N3rgyDataApi:
         :param end: end date/time of the period in the format YYYYMMDDHHmm
         :return: consumption data list
         """
-        # api request url without query params
+        # api request url
         url = f'{self.base_url}/{self.mpxn}/electricity/consumption/1'
-        
+        payload = None
+
         # with query params
         if start and end:
             # start date/time validation and exception handler
@@ -159,7 +160,11 @@ class N3rgyDataApi:
                 raise ValueError("Invalid value for `end`, must conform to the pattern `YYYYMMDDHHmm`")
 
             # n3rgy data api request with query params
-            url = f'{url}?start={start}&end={end}&granularity=halfhour'
+            payload = {
+                "start": start,
+                "end": end,
+                "granularity": "halfhour"
+            }
         
         # api request headers
         headers = CaseInsensitiveDict()
@@ -167,7 +172,7 @@ class N3rgyDataApi:
 
         # call n3rgy api
         data = None
-        response = requests.get(url, headers=headers)
+        response = requests.get(url, params=payload, headers=headers)
 
         # fetch data from response object
         if response.status_code == StatusCode.ST_OK:
