@@ -1,7 +1,7 @@
 """
 Script file: sensor.py
 Created on: Jan 29, 2021
-Last modified on: Feb 9, 2021
+Last modified on: Feb 11, 2021
 
 Comments:
     Support for n3rgy data sensor
@@ -25,21 +25,28 @@ from .const import (
     CONF_ENVIRONMENT,
     CONF_START,
     CONF_END,
+
     PLATFORM,
     ATTRIBUTION,
-    DEFAULT_NAME,
-    DEFAULT_LIVE_ENVIRONMENT,
     SENSOR_NAME,
     SENSOR_TYPE,
     ICON,
+
+    DEFAULT_NAME,
+    DEFAULT_LIVE_ENVIRONMENT,
+    DEFAULT_DEVICE_TYPE,
+
     INPUT_DATETIME_FORMAT,
     ATTR_DATETIME_FORMAT,
+
     ATTR_START_DATETIME,
-    ATTR_END_DATETIME
+    ATTR_END_DATETIME,
+    ATTR_DEVICE_TYPE,
+
+    GRANT_CONSENT_READY
 )
 from .n3rgy_api import N3rgyDataApi, N3rgyGrantConsent
 
-_TIME_INTERVAL_SEC = 3600
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -62,86 +69,171 @@ async def async_setup_entry(hass, entry, async_add_entities):
         try:
             # fetch n3rgy data
             response = await hass.async_add_executor_job(
-                do_read_consumption,
+                read_consumption,
+                api,
                 entry
             )
             return response
 
-        except (TimeoutError) as timeout_err:
+        except TimeoutError as timeout_err:
             raise UpdateFailed("Timeout communicating with API") from timeout_err
         except (ConnectError, HTTPError, Timeout, ValueError, TypeError) as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
-    coordinator = DataUpdateCoordinator(
-        hass,
-        _LOGGER,
-        name=PLATFORM,
-        update_method=async_update_data,
-        update_interval=timedelta(seconds=100),
-    )
+    async def init_consumption_entity():
+        """
+        Initialize n3rgy power consumption sensor
+        :param: none
+        :return: data to be used for sensor initialization
+        """
+        # get coordinator to intialize entity
+        coordinator = DataUpdateCoordinator(
+            hass,
+            _LOGGER,
+            name=PLATFORM,
+            update_method=async_update_data,
+            update_interval=timedelta(seconds=100),
+        )
 
-    # fetch initial data so we have data when entities subscribe
-    await coordinator.async_refresh()
+        # fetch initial data so we have data when entities subscribe
+        await coordinator.async_refresh()
+
+        # get device type
+        device_type = get_device_type(api, entry)
+        return coordinator, device_type
+
+    # initialize objects
+    coordinator = None
+    device_type = None
+
+    # grant consent availability
+    api = init_api_client(entry)
+    if GRANT_CONSENT_READY:
+        # grant consent is enabled for live environment
+        if process_grant_consent(entry):
+            coordinator, device_type = await init_consumption_entity()
+    else:
+        coordinator, device_type = await init_consumption_entity()
 
     # add sensor
-    async_add_entities([N3rgySensor(coordinator)], True)
+    async_add_entities([N3rgySensor(coordinator, device_type)], True)
 
 
-def do_read_consumption(config_entry):
+def init_api_client(config_entry):
     """
-    List consumption values for an utility type on the provided accessible 
-    property, within a certain time frame
+    Initialize n3rgy data API client
     :param config_entry: config entry
-    :return: consumption data list
+    :return n3rgy data api client instance
     """
     # read the configuration data
-    host = None  # host base url
-    api_key = None  # api key
-    property_id = None  # authorized property id
-    start = None  # start date/time of the period in the format YYYYMMDDHHmm
-    end = None  # end date/time of the period in the format YYYYMMDDHHmm
-    live_env = DEFAULT_LIVE_ENVIRONMENT  # live environment
-
-    # return value
-    data = None
+    host = None
+    api_key = None
+    property_id = None
 
     # check the input data
     if config_entry.data:
         host = config_entry.data.get(CONF_HOST)
         api_key = config_entry.data.get(CONF_API_KEY)
         property_id = config_entry.data.get(CONF_PROPERTY_ID)
+    
+    # initialize n3rgy data API client
+    api_instance = None
+    try:
+        api_instance = N3rgyDataApi(host, api_key, property_id)
+    except ValueError as err:
+        _LOGGER.warning(f"[INIT_API_CLIENT] Error: {str(err)}")
+    finally:
+        return api_instance
+
+
+def get_device_type(api, config_entry):
+    """
+    Get smart meter type
+    :param api: n3rgy api client
+    :param config_entry: config entry
+    :return: device type
+    """
+    # get the property id
+    property_id = None
+
+    # check the input data
+    if config_entry.data:
+        property_id = config_entry.data.get(CONF_PROPERTY_ID)
+
+    # get smart meter type
+    data = None
+    try:
+        data = api.find_mxpn(property_id)
+    except ValueError as err:
+        _LOGGER.warning(f"[GET_TYPE] Error: {str(err)}")
+    finally:
+        return data
+
+
+def process_grant_consent(config_entry):
+    """
+    Grant consent process
+    :param config_entry: config entry
+    :return: True if successful, False otherwise
+    """
+    # read the configuration data
+    api_key = None
+    property_id = None
+    live_env = DEFAULT_LIVE_ENVIRONMENT
+
+    # check the input data
+    if config_entry.data:
+        api_key = config_entry.data.get(CONF_API_KEY)
+        property_id = config_entry.data.get(CONF_PROPERTY_ID)
 
     if config_entry.options:
         live_env = config_entry.options.get(CONF_ENVIRONMENT)
+
+    # select get operation authorization base url
+    consent_token_base_url = 'https://consentsandbox.data.n3rgy.com'
+    if live_env:
+        consent_token_base_url = 'https://consent.data.n3rgy.com'
+
+    # call api
+    consent = N3rgyGrantConsent(property_id, api_key)
+    session_id = consent.get_operation_authorization_token(consent_token_base_url)
+    if session_id:
+        # select handover base URL
+        handover_base_url = 'https://portal-consent-sandbox.data.n3rgy.com/'
+        if live_env:
+            handover_base_url = 'https://portal-consent.data.n3rgy.com'
+
+        # define return/error url to be redirected
+        return_url = 'https://cloudkb.co.uk'
+        error_url = 'https://cloudkb.co.uk'
+        return consent.invocation_endpoint_url(handover_base_url, session_id, 'ihdmac_full', return_url, error_url)
+
+    # failed
+    return False
+
+
+def read_consumption(api, config_entry):
+    """
+    List consumption values for an utility type on the provided accessible property, within a certain time frame
+    :param api: n3rgy api client
+    :param config_entry: config entry
+    :return: consumption data list
+    """
+    # read the configuration data
+    start = None  # start date/time of the period in the format YYYYMMDDHHmm
+    end = None  # end date/time of the period in the format YYYYMMDDHHmm
+
+    # check options
+    if config_entry.options:
         start = config_entry.options.get(CONF_START)
         end = config_entry.options.get(CONF_END)
 
+    # get power consumption data
+    data = None
     try:
-        # select get operation authorization base url
-        consent_token_base_url = 'https://consentsandbox.data.n3rgy.com'
-        if live_env:
-            consent_token_base_url = 'https://consent.data.n3rgy.com'
-
-        # call api
-        consent = N3rgyGrantConsent(property_id, api_key)
-        session_id = consent.get_operation_authorization_token(consent_token_base_url)
-        if session_id:
-            # select handover base URL
-            handover_base_url = 'https://portal-consent-sandbox.data.n3rgy.com/'
-            if live_env:
-                handover_base_url = 'https://portal-consent.data.n3rgy.com'
-
-            # define return/error url to be redirected
-            return_url = 'https://cloudkb.co.uk'
-            error_url = 'https://cloudkb.co.uk'
-            if consent.invocation_endpoint_url(handover_base_url, session_id, 'ihdmac_full', return_url, error_url):
-                # create n3rgy data api instance
-                api = N3rgyDataApi(host, api_key, property_id)
-                data = api.read_consumption(start, end)
-
+        data = api.read_consumption(start, end)
     except ValueError as ex:
-        # error handling
-        _LOGGER.warning(f"Failed to initialize API: {str(ex)}")
+        _LOGGER.warning(f"[READ_CONSUMPTION] Error: {str(err)}")
     finally:
         return data
 
@@ -149,16 +241,22 @@ def do_read_consumption(config_entry):
 class N3rgySensor(Entity):
     """Implementation of a n3rgy data sensor"""
 
-    def __init__(self, coordinator):
+    def __init__(self, coordinator, device_type):
         """
         Initialize n3rgy data sensor class
         :param coordinator: data coordinator object
+        :param device_type: smart meter type
         :return: none
         """
         self._name = SENSOR_NAME
         self._type = SENSOR_TYPE
         self._state = None
         self._coordinator = coordinator
+        self._device_type = DEFAULT_DEVICE_TYPE
+
+        # parameter validation
+        if device_type is not None:
+            self._device_type = device_type
 
     @property
     def name(self):
@@ -225,11 +323,13 @@ class N3rgySensor(Entity):
         :return: state attributes
         """
         attributes = {
-            ATTR_ATTRIBUTION: ATTRIBUTION,
+            ATTR_DEVICE_TYPE: self._device_type,
+            ATTR_ATTRIBUTION: ATTRIBUTION
         }
+
         if not self._coordinator.data:
             return attributes
-        
+
         # reformat date/time
         try:
             str_start = self._coordinator.data['start']
@@ -240,7 +340,7 @@ class N3rgySensor(Entity):
             attributes[ATTR_END_DATETIME] = datetime.strftime(dt_end, ATTR_DATETIME_FORMAT)
         except:
             _LOGGER.warning("Failed to reformat datetime object")
-        
+
         return attributes
 
     @property

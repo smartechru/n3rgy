@@ -1,7 +1,7 @@
 """
 Script file: n3rgy_api.py
 Created on: Jan Feb 4, 2021
-Last modified on: Feb 10, 2021
+Last modified on: Feb 11, 2021
 
 Comments:
     n3rgy data api functions
@@ -22,6 +22,7 @@ class StatusCode:
     ST_CREATED = 201
     ST_BAD_REQUEST = 400
     ST_FORBIDDEN = 403
+    ST_NOT_FOUND = 404
 
 
 class N3rgyGrantConsent:
@@ -63,10 +64,10 @@ class N3rgyGrantConsent:
         if response.status_code == StatusCode.ST_CREATED:
             res = response.json()
             res = res['sessionId']
-            _LOGGER.debug(f"Session ID: {res}")
+            _LOGGER.debug(f"[GET_TOKEN] Session ID: {res}")
         else:
             # bad request
-            _LOGGER.warning(f"Bad request: {response.status_code}")
+            _LOGGER.warning(f"[GET_TOKEN] Bad request: {response.status_code}")
         
         return res
 
@@ -98,11 +99,11 @@ class N3rgyGrantConsent:
         response = requests.get(url, headers=headers)
         if response.status_code == StatusCode.ST_OK:
             # successful grant consent
-            _LOGGER.debug("Handover done")
+            _LOGGER.debug("[HANDOVER] Successful")
             return True
         else:
             # grant consent failed
-            _LOGGER.warning(f"Grant consent failed: {response.status_code}")
+            _LOGGER.warning(f"[HANDOVER] Grant consent failed: {response.status_code}")
             return False
 
 
@@ -136,6 +137,47 @@ class N3rgyDataApi:
         self.base_url = host
         self.api_key = api_key
         self.mpxn = property_id
+
+    def find_mxpn(self, mpxn):
+        """
+        Searches the n3rgy database for the given MPxN
+        If not found in the n3rgy database, tries to provision the MPxN using Secure's SMSO
+        :param mpxn: MPxN requested by the user
+        :return: json data that includes the mpxn and smart meter type
+        """
+        # validate MPxN
+        if not re.search(r'[0-9]{13}||[0-9]{9}', mpxn):
+            raise ValueError("Invalid MPxN")
+
+        # api request url
+        url = f'{self.base_url}/find-mxpn/{mpxn}'
+
+        # api request headers
+        headers = CaseInsensitiveDict()
+        headers["Authorization"] = self.api_key
+
+        # call n3rgy api
+        data = None
+        response = requests.get(url, headers=headers)
+
+        # fetch data from response object
+        if response.status_code == StatusCode.ST_OK:
+            try:
+                data = json.loads(response.text)
+            except ValueError:
+                data = response.text
+
+            # logging response data
+            data = data['deviceType']
+            _LOGGER.debug(f"[GET_TYPE] Device type: {data}")
+        elif response.status_code == StatusCode.ST_NOT_FOUND:
+            # MPxN not found
+            _LOGGER.debug(f"[GET_TYPE] MPxN not found: {response.status_code}")
+        else:
+            # forbidden error
+            _LOGGER.warning(f"[GET_TYPE] Invalid API request: {response.status_code}")
+
+        return data
 
     def read_consumption(self, start, end):
         """
@@ -182,9 +224,9 @@ class N3rgyDataApi:
                 data = response.text
 
             # logging response data
-            _LOGGER.debug(f"Resource: {data['resource']}")
+            _LOGGER.debug(f"[READ_CONSUMPTION] Resource: {data['resource']}")
         else:
             # logging error
-            _LOGGER.warning(f"Invalid API request: {response.status_code}")
+            _LOGGER.warning(f"[READ_CONSUMPTION] Invalid API request: {response.status_code}")
 
         return data
