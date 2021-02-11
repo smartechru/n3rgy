@@ -1,7 +1,7 @@
 """
 Script file: n3rgy_api.py
 Created on: Jan Feb 4, 2021
-Last modified on: Feb 11, 2021
+Last modified on: Feb 12, 2021
 
 Comments:
     n3rgy data api functions
@@ -150,7 +150,7 @@ class N3rgyDataApi:
             raise ValueError("Invalid MPxN")
 
         # api request url
-        url = f'{self.base_url}/find-mxpn/{mpxn}'
+        url = f'{self.base_url}/find-mpxn/{mpxn}'
 
         # api request headers
         headers = CaseInsensitiveDict()

@@ -1,24 +1,23 @@
 """
 Script file: sensor.py
 Created on: Jan 29, 2021
-Last modified on: Feb 11, 2021
+Last modified on: Feb 12, 2021
 
 Comments:
     Support for n3rgy data sensor
 """
 
 import logging
-import async_timeout
 
 from datetime import datetime, timedelta
-from requests.exceptions import ConnectionError as ConnectError, HTTPError, Timeout
 from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from homeassistant.const import(
     ATTR_ATTRIBUTION,
     CONF_HOST,
-    CONF_API_KEY
+    CONF_API_KEY,
+    CONF_NAME
 )
 from .const import (
     CONF_PROPERTY_ID,
@@ -60,33 +59,19 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # in-line function
     async def async_update_data():
         """
-        Fetch data from API endpoint.
-        This is the place to pre-process the data to lookup tables
-        so entities can quickly look up their data.
+        Fetch data from n3rgy API
+        This is the place to pre-process the data to lookup tables so entities can quickly look up their data
         :param: none
-        :return: consumption value
+        :return: power consumption data
         """
-        try:
-            # fetch n3rgy data
-            response = await hass.async_add_executor_job(
-                read_consumption,
-                api,
-                entry
-            )
-            return response
+        return await hass.async_add_executor_job(read_consumption, api, entry)
 
-        except TimeoutError as timeout_err:
-            raise UpdateFailed("Timeout communicating with API") from timeout_err
-        except (ConnectError, HTTPError, Timeout, ValueError, TypeError) as err:
-            raise UpdateFailed(f"Error communicating with API: {err}") from err
-
-    async def init_consumption_entity():
+    async def async_initialize():
         """
-        Initialize n3rgy power consumption sensor
+        Initialize objects from n3rgy API
         :param: none
-        :return: data to be used for sensor initialization
+        :return: data coordinator, device type
         """
-        # get coordinator to intialize entity
         coordinator = DataUpdateCoordinator(
             hass,
             _LOGGER,
@@ -96,27 +81,25 @@ async def async_setup_entry(hass, entry, async_add_entities):
         )
 
         # fetch initial data so we have data when entities subscribe
+        sensor_name, device_type = await hass.async_add_executor_job(get_device_info, api, entry)
         await coordinator.async_refresh()
+        return (coordinator, sensor_name, device_type)
 
-        # get device type
-        device_type = get_device_type(api, entry)
-        return coordinator, device_type
-
-    # initialize objects
-    coordinator = None
+    # initialize n3rgy API
     device_type = None
-
-    # grant consent availability
     api = init_api_client(entry)
+
+    # grant consent options
     if GRANT_CONSENT_READY:
         # grant consent is enabled for live environment
         if process_grant_consent(entry):
-            coordinator, device_type = await init_consumption_entity()
+            coordinator, sensor_name, device_type = await async_initialize()
     else:
-        coordinator, device_type = await init_consumption_entity()
+        # grant consent is disabled
+        coordinator, sensor_name, device_type = await async_initialize()
 
     # add sensor
-    async_add_entities([N3rgySensor(coordinator, device_type)], True)
+    async_add_entities([N3rgySensor(coordinator, sensor_name, device_type)], False)
 
 
 def init_api_client(config_entry):
@@ -146,28 +129,30 @@ def init_api_client(config_entry):
         return api_instance
 
 
-def get_device_type(api, config_entry):
+def get_device_info(api, config_entry):
     """
-    Get smart meter type
+    Get sensor information
     :param api: n3rgy api client
     :param config_entry: config entry
-    :return: device type
+    :return: (device name, smarte meter type)
     """
     # get the property id
     property_id = None
+    sensor_name = DEFAULT_NAME
 
     # check the input data
     if config_entry.data:
         property_id = config_entry.data.get(CONF_PROPERTY_ID)
+        sensor_name = config_entry.data.get(CONF_NAME)
 
     # get smart meter type
-    data = None
+    device_type = None
     try:
-        data = api.find_mxpn(property_id)
+        device_type = api.find_mxpn(property_id)
     except ValueError as err:
         _LOGGER.warning(f"[GET_TYPE] Error: {str(err)}")
     finally:
-        return data
+        return (sensor_name, device_type)
 
 
 def process_grant_consent(config_entry):
@@ -241,14 +226,15 @@ def read_consumption(api, config_entry):
 class N3rgySensor(Entity):
     """Implementation of a n3rgy data sensor"""
 
-    def __init__(self, coordinator, device_type):
+    def __init__(self, coordinator, sensor_name, device_type):
         """
         Initialize n3rgy data sensor class
         :param coordinator: data coordinator object
+        :param sensor_name: device name
         :param device_type: smart meter type
         :return: none
         """
-        self._name = SENSOR_NAME
+        self._name = sensor_name
         self._type = SENSOR_TYPE
         self._state = None
         self._coordinator = coordinator
@@ -265,7 +251,7 @@ class N3rgySensor(Entity):
         :param: none
         :return: sensor name
         """
-        return f"{DEFAULT_NAME} {self._name}"
+        return self._name
 
     @property
     def unique_id(self):
