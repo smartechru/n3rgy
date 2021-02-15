@@ -33,7 +33,7 @@ n3rgy:
 
 ```
 
-### CONFIGURATION PARAMETERS
+### Parameters
 
 | Parameter | Optional | Description |
 |:--------- | -------- | ----------- |

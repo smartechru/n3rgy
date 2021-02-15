@@ -1,7 +1,7 @@
 """
 Script file: n3rgy_api.py
 Created on: Jan Feb 4, 2021
-Last modified on: Feb 12, 2021
+Last modified on: Feb 15, 2021
 
 Comments:
     n3rgy data api functions
@@ -30,7 +30,7 @@ class N3rgyGrantConsent:
 
     def __init__(self, mpxn, api_key):
         """
-        Initialize Grant Consent client
+        Initialize Grant Consent client.
         :param mpxn: the MPxN property id getting from the customer (consumer)
         :param api_key: n3rgy data access key (API key)
         """
@@ -116,7 +116,7 @@ class N3rgyDataApi:
 
     def __init__(self, host, api_key, property_id):
         """
-        Initialize n3rgy data api client
+        Initialize n3rgy data api client.
         :param host: host URL
         :param api_key: API key (MPxN)
         :param property_id: authorized property id
@@ -132,7 +132,7 @@ class N3rgyDataApi:
         # property_id validation
         if not re.search(r'[0-9]{13}||[0-9]{9}', property_id):
             raise ValueError("Invalid property id, must be either an MPAN or MPRN")
-        
+
         # store information
         self.base_url = host
         self.api_key = api_key
@@ -140,8 +140,8 @@ class N3rgyDataApi:
 
     def find_mxpn(self, mpxn):
         """
-        Searches the n3rgy database for the given MPxN
-        If not found in the n3rgy database, tries to provision the MPxN using Secure's SMSO
+        Searches the n3rgy database for the given MPxN.
+        If not found in the n3rgy database, tries to provision the MPxN using Secure's SMSO.
         :param mpxn: MPxN requested by the user
         :return: json data that includes the mpxn and smart meter type
         """
@@ -179,35 +179,31 @@ class N3rgyDataApi:
 
         return data
 
-    def read_consumption(self, start, end):
+    def call_api(self, utility=None, reading_type=None, element=None, payload=None, tag=None):
         """
-        List consumption values for an utility type on the provided accessible 
-        property, within a certain time frame
-        :param start: start date/time of the period in the format YYYYMMDDHHmm
-        :param end: end date/time of the period in the format YYYYMMDDHHmm
-        :return: consumption data list
+        n3rgy data API call base function.
+        :param utility: utility associated with the request {'electricity', 'gas', ...}
+        :param reading_type: reading type {'consumption', 'production', 'tariff')}
+        :param element: element for which prices are returned, only applies to electric meters, ignored otherwise
+        :param payload: payload data for GET request
+        :param tag: tag for debug
+        :return: response of API request
         """
         # api request url
-        url = f'{self.base_url}/{self.mpxn}/electricity/consumption/1'
-        payload = None
+        url = f'{self.base_url}/{self.mpxn}'
 
-        # with query params
-        if start and end:
-            # start date/time validation and exception handler
-            if not re.search(r'[0-9]{12}', start):
-                raise ValueError("Invalid value for `start`, must conform to the pattern `YYYYMMDDHHmm`")
+        # utility is not empty
+        if utility is not None:
+            url = f'{url}/{utility}'
 
-            # end date/time validation and exception handler
-            if not re.search(r'[0-9]{12}', end):
-                raise ValueError("Invalid value for `end`, must conform to the pattern `YYYYMMDDHHmm`")
+            # reading type is not empty
+            if reading_type is not None:
+                url = f'{url}/{reading_type}'
 
-            # n3rgy data api request with query params
-            payload = {
-                "start": start,
-                "end": end,
-                "granularity": "halfhour"
-            }
-        
+                # element is not empty
+                if element is not None:
+                    url = f'{url}/{element}'
+
         # api request headers
         headers = CaseInsensitiveDict()
         headers["Authorization"] = self.api_key
@@ -224,9 +220,107 @@ class N3rgyDataApi:
                 data = response.text
 
             # logging response data
-            _LOGGER.debug(f"[READ_CONSUMPTION] Resource: {data['resource']}")
+            if tag is not None:
+                _LOGGER.debug(f"[{tag}] Response: {data}")
         else:
             # logging error
-            _LOGGER.warning(f"[READ_CONSUMPTION] Invalid API request: {response.status_code}")
+            if tag is not None:
+                _LOGGER.warning(f"[{tag}] Invalid API request: {response.status_code}")
 
         return data
+
+    def get_valid_date(self, start, end):
+        """
+        Validate given date/time objects using regex.
+        :param start: start date/time of the period, in the format YYYYMMDDHHmm
+        :param end: end date/time of the period, in the format YYYYMMDDHHmm
+        :return: valid payload data
+        """
+        payload = None
+
+        # with query params
+        if start and end:
+            # start date/time validation and exception handler
+            if not re.search(r'[0-9]{12}', start):
+                raise ValueError("Invalid value for `start`, must conform to the pattern `YYYYMMDDHHmm`")
+
+            # end date/time validation and exception handler
+            if not re.search(r'[0-9]{12}', end):
+                raise ValueError("Invalid value for `end`, must conform to the pattern `YYYYMMDDHHmm`")
+
+            # n3rgy data api request with query params
+            payload = {
+                "start": start,
+                "end": end
+            }
+
+        # return valid payload
+        return payload
+
+    def read_consumption(self, start, end, granularity='halfhour'):
+        """
+        Returns values for the consumption of the specified utility at the property identified by the given MPxN.
+        Unless otherwise specified using optional parameters, returns the consumption values for every half-hour of the previous day.
+        Accepts as optional parameters a start date/time, an end date/time, and granularity (either halfhourly or daily).
+        :param start: start date/time of the period, in the format YYYYMMDDHHmm
+        :param end: end date/time of the period, in the format YYYYMMDDHHmm
+        :param granularity: granularity of the consumption data
+        :return: consumption data list
+        """
+        payload = self.get_valid_date(start, end)
+        payload['granularity'] = granularity
+        return self.call_api('electricity', 'consumption', '1', payload=payload)
+
+    def read_tariff(self, start, end):
+        """
+        Returns values for the tariff applied to the specified utility at the property identified by the given MPxN.
+        Unless otherwise specified using optional parameters, returns the tariff values for every half-hour of the previous day.
+        Accepts as optional parameters a start date and an end date.
+        Always returns the tariff for at least a whole day
+        :param start: start date/time of the period, in the format YYYYMMDDHHmm
+        :param end: end date/time of the period, in the format YYYYMMDDHHmm
+        :return: tariff data list
+        """
+        payload = self.get_valid_date(start, end)
+        return self.call_api('electricity', 'tariff', '1', payload=payload, tag='READ_TARIFF')
+
+    def read_export(self, start, end):
+        """
+        Returns the amount of exported energy for the specified property.
+        Unless otherwise specified using optional parameters, returns the energy values for every half-hour of the previous day.
+        Accepts as optional parameters a start date/time, an end date/time.
+        :param start: start date/time of the period, in the format YYYYMMDDHHmm
+        :param end: end date/time of the period, in the format YYYYMMDDHHmm
+        """
+        payload = self.get_valid_date(start, end)
+        return self.call_api('electricity', 'production', '1', payload=payload, tag='READ_EXPORT')
+
+    def get_supported_elements(self, utility, reading_type):
+        """
+        Returns a list of the available meter elements of the specified meter.
+        This uniquely identifies by the triplet {mpxn}/{utility}/{reading type}.
+        :param utility: utility associated with the request
+        :param reading_type: reading type associated with the request
+        :return: list of available meter elements
+        """
+        return self.call_api(utility, reading_type)
+
+    def get_reading_types(self, utility):
+        """
+        Returns a list of the reading types (types of data) available for that property/meter pair.
+        Information on reading types may not yet be available for Live MPxN/meter pairs already registered on n3rgy's database.
+        In those cases, *entries* in the response may be empty.
+        :param utility: utility associated with the request
+        :return: list of available reading types
+        """
+        return self.call_api(utility, tag='GET_READING_TYPES')
+
+    def get_utility_types(self):
+        """
+        Returns a list of the smart meters available at that property.
+        "Sandbox" only has data for electricity meters.
+        "Sandbox" will always receive 'electricity' as a response for this request.
+        :param: none
+        :return: list of available utility types
+        """
+        return self.call_api(tag='GET_UTILITY')
