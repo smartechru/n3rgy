@@ -55,9 +55,10 @@ Optional arguments:
 n3rgy:
   name: 'Consumption Data'
   ...
-  environment: true    # live environment enabled
-  start: 202102080130  # start date/time (FORMAT: YYYYMMDDHHmm)
-  end: 202102091125    # end date/time (FORMAT: YYYYMMDDHHmm)
+  environment: true     # live environment enabled
+  utility: electricity  # utility type
+  start: 202102080130   # start date/time (FORMAT: YYYYMMDDHHmm)
+  end: 202102091125     # end date/time (FORMAT: YYYYMMDDHHmm)
 
 ```
 
@@ -70,6 +71,7 @@ n3rgy:
 | `api_key` | No | The API key used for authentication with the server |
 | `property_id` | No | The Property ID, which can be either an MPAN or MPRN |
 | `environment` | Yes | Live environment flag (default: `false`) |
+| `utility` | Yes | Utility type (default: `electricity`) |
 | `start` | Yes | Start date/time of the period in the format YYYYMMDDHHmm |
 | `end` | Yes | End date/time of the period in the format YYYYMMDDHHmm |
 

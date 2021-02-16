@@ -20,12 +20,15 @@ from homeassistant.const import (
 from .const import (
     CONF_PROPERTY_ID,
     CONF_ENVIRONMENT,
+    CONF_UTILITY,
     CONF_START,
     CONF_END,
     DEFAULT_NAME,
     DEFAULT_HOST,
     DEFAULT_PROPERTY_ID,
     DEFAULT_LIVE_ENVIRONMENT,
+    UTILITY_ELECTRICITY,
+    UTILITY_GAS,
     DOMAIN
 )
 
@@ -135,8 +138,13 @@ class N3rgyOptionsFlow(config_entries.OptionsFlow):
         if env is None:
             env = DEFAULT_LIVE_ENVIRONMENT
 
+        utility = self.config_entry.options.get(CONF_UTILITY)
+        if utility is None:
+            utility = UTILITY_ELECTRICITY
+
         config = {
             vol.Optional(CONF_ENVIRONMENT, default=env): bool,
+            vol.Optional(CONF_UTILITY, default=utility): vol.In([UTILITY_ELECTRICITY, UTILITY_GAS]),
             vol.Optional(CONF_START, default=self.config_entry.options.get(CONF_START)): str,
             vol.Optional(CONF_END, default=self.config_entry.options.get(CONF_END)): str
         }

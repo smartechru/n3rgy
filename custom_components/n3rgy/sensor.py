@@ -1,7 +1,7 @@
 """
 Script file: sensor.py
 Created on: Jan 29, 2021
-Last modified on: Feb 12, 2021
+Last modified on: Feb 17, 2021
 
 Comments:
     Support for n3rgy data sensor
@@ -22,6 +22,7 @@ from homeassistant.const import(
 from .const import (
     CONF_PROPERTY_ID,
     CONF_ENVIRONMENT,
+    CONF_UTILITY,
     CONF_START,
     CONF_END,
 
@@ -205,18 +206,20 @@ def read_consumption(api, config_entry):
     :return: consumption data list
     """
     # read the configuration data
-    start = None  # start date/time of the period in the format YYYYMMDDHHmm
-    end = None  # end date/time of the period in the format YYYYMMDDHHmm
+    start = None
+    end = None
+    utility = 'electricity'
 
     # check options
     if config_entry.options:
+        utility = config_entry.options.get(CONF_UTILITY)
         start = config_entry.options.get(CONF_START)
         end = config_entry.options.get(CONF_END)
 
     # get power consumption data
     data = None
     try:
-        data = api.read_consumption(start, end)
+        data = api.read_consumption(utility, start, end)
     except ValueError as ex:
         _LOGGER.warning(f"[READ_CONSUMPTION] Error: {str(err)}")
     finally:

@@ -1,7 +1,7 @@
 """
 Script file: const.py
 Created on: Jan 29, 2021
-Last modified on: Feb 11, 2021
+Last modified on: Feb 17, 2021
 
 Comments:
     Constants for the n3rgy data integration
@@ -13,6 +13,7 @@ DATA_LISTENER = "listener"
 # config options
 CONF_PROPERTY_ID = "property_id"
 CONF_ENVIRONMENT = "environment"
+CONF_UTILITY = "utility"
 CONF_START = "start"
 CONF_END = "end"
 
@@ -29,6 +30,8 @@ DEFAULT_HOST = "https://sandboxapi.data.n3rgy.com"
 DEFAULT_PROPERTY_ID = "1234567891008"
 DEFAULT_LIVE_ENVIRONMENT = False
 DEFAULT_DEVICE_TYPE = "Not specified"
+UTILITY_ELECTRICITY = "electricity"
+UTILITY_GAS = "gas"
 
 # attributes
 ATTR_START_DATETIME = "Start datetime"

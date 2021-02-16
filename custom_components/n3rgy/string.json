@@ -29,6 +29,7 @@
                 "description": "You can set the environment, start datetime, end datetime.\nA 'Grant Consent' service in a Live environment will be available soon.\nIf you need help with the configuration have a look here:\nhttps://github.com/smartechru/n3rgy.",
                 "data": {
                     "environment": "Live environment (for real MPxNs)",
+                    "utility": "Utility",
                     "start": "Start (format: YYYYMMDDHHmm)",
                     "end": "End (format: YYYYMMDDHHmm)"
                 }

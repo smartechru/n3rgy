@@ -1,7 +1,7 @@
 """
 Script file: n3rgy_api.py
 Created on: Jan Feb 4, 2021
-Last modified on: Feb 15, 2021
+Last modified on: Feb 17, 2021
 
 Comments:
     n3rgy data api functions
@@ -20,6 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 class StatusCode:
     ST_OK = 200
     ST_CREATED = 201
+    ST_PARTIAL_CONTENT = 206
     ST_BAD_REQUEST = 400
     ST_FORBIDDEN = 403
     ST_NOT_FOUND = 404
@@ -213,7 +214,7 @@ class N3rgyDataApi:
         response = requests.get(url, params=payload, headers=headers)
 
         # fetch data from response object
-        if response.status_code == StatusCode.ST_OK:
+        if response.status_code in [StatusCode.ST_OK, StatusCode.ST_PARTIAL_CONTENT]:
             try:
                 data = json.loads(response.text)
             except ValueError:
@@ -257,11 +258,12 @@ class N3rgyDataApi:
         # return valid payload
         return payload
 
-    def read_consumption(self, start, end, granularity='halfhour'):
+    def read_consumption(self, utility, start, end, granularity='halfhour'):
         """
         Returns values for the consumption of the specified utility at the property identified by the given MPxN.
         Unless otherwise specified using optional parameters, returns the consumption values for every half-hour of the previous day.
         Accepts as optional parameters a start date/time, an end date/time, and granularity (either halfhourly or daily).
+        :param utility: utility associated with the request
         :param start: start date/time of the period, in the format YYYYMMDDHHmm
         :param end: end date/time of the period, in the format YYYYMMDDHHmm
         :param granularity: granularity of the consumption data
@@ -269,31 +271,33 @@ class N3rgyDataApi:
         """
         payload = self.get_valid_date(start, end)
         payload['granularity'] = granularity
-        return self.call_api('electricity', 'consumption', '1', payload=payload)
+        return self.call_api(utility, 'consumption', '1', payload=payload, tag='READ_CONSUMPTION')
 
-    def read_tariff(self, start, end):
+    def read_tariff(self, utility, start, end):
         """
         Returns values for the tariff applied to the specified utility at the property identified by the given MPxN.
         Unless otherwise specified using optional parameters, returns the tariff values for every half-hour of the previous day.
         Accepts as optional parameters a start date and an end date.
         Always returns the tariff for at least a whole day
+        :param utility: utility associated with the request
         :param start: start date/time of the period, in the format YYYYMMDDHHmm
         :param end: end date/time of the period, in the format YYYYMMDDHHmm
         :return: tariff data list
         """
         payload = self.get_valid_date(start, end)
-        return self.call_api('electricity', 'tariff', '1', payload=payload, tag='READ_TARIFF')
+        return self.call_api(utility, 'tariff', '1', payload=payload, tag='READ_TARIFF')
 
-    def read_export(self, start, end):
+    def read_export(self, utility, start, end):
         """
         Returns the amount of exported energy for the specified property.
         Unless otherwise specified using optional parameters, returns the energy values for every half-hour of the previous day.
         Accepts as optional parameters a start date/time, an end date/time.
+        :param utility: utility associated with the request
         :param start: start date/time of the period, in the format YYYYMMDDHHmm
         :param end: end date/time of the period, in the format YYYYMMDDHHmm
         """
         payload = self.get_valid_date(start, end)
-        return self.call_api('electricity', 'production', '1', payload=payload, tag='READ_EXPORT')
+        return self.call_api(utility, 'production', '1', payload=payload, tag='READ_EXPORT')
 
     def get_supported_elements(self, utility, reading_type):
         """
