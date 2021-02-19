@@ -1,7 +1,7 @@
 """
 Script file: config_flow.py
 Created on: Jan 31, 2021
-Last modified on: Feb 9, 2021
+Last modified on: Feb 20, 2021
 
 Comments:
     Config flow for n3rgy data
@@ -20,13 +20,12 @@ from homeassistant.const import (
 from .const import (
     CONF_PROPERTY_ID,
     CONF_ENVIRONMENT,
+    CONF_DAILY_UPDATE,
     CONF_UTILITY,
     CONF_START,
     CONF_END,
     DEFAULT_NAME,
     DEFAULT_HOST,
-    DEFAULT_PROPERTY_ID,
-    DEFAULT_LIVE_ENVIRONMENT,
     UTILITY_ELECTRICITY,
     UTILITY_GAS,
     DOMAIN
@@ -66,7 +65,7 @@ class N3rgyConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config = {
             vol.Required(CONF_HOST, default=DEFAULT_HOST): str,
             vol.Required(CONF_API_KEY): str,
-            vol.Required(CONF_PROPERTY_ID, default=DEFAULT_PROPERTY_ID): str,
+            vol.Required(CONF_PROPERTY_ID): str,
             vol.Optional(CONF_NAME, default=DEFAULT_NAME): str
         }
 
@@ -134,17 +133,10 @@ class N3rgyOptionsFlow(config_entries.OptionsFlow):
                 errors["base"] = "unknown"
 
         # schema
-        env = self.config_entry.options.get(CONF_ENVIRONMENT)
-        if env is None:
-            env = DEFAULT_LIVE_ENVIRONMENT
-
-        utility = self.config_entry.options.get(CONF_UTILITY)
-        if utility is None:
-            utility = UTILITY_ELECTRICITY
-
         config = {
-            vol.Optional(CONF_ENVIRONMENT, default=env): bool,
-            vol.Optional(CONF_UTILITY, default=utility): vol.In([UTILITY_ELECTRICITY, UTILITY_GAS]),
+            vol.Optional(CONF_ENVIRONMENT, default=self.config_entry.options.get(CONF_ENVIRONMENT)): bool,
+            vol.Optional(CONF_DAILY_UPDATE, default=self.config_entry.options.get(CONF_DAILY_UPDATE)): bool,
+            vol.Optional(CONF_UTILITY, default=self.config_entry.options.get(CONF_UTILITY)): vol.In([UTILITY_ELECTRICITY, UTILITY_GAS]),
             vol.Optional(CONF_START, default=self.config_entry.options.get(CONF_START)): str,
             vol.Optional(CONF_END, default=self.config_entry.options.get(CONF_END)): str
         }

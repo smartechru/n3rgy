@@ -1,7 +1,7 @@
 """
 Script file: n3rgy_api.py
 Created on: Jan Feb 4, 2021
-Last modified on: Feb 17, 2021
+Last modified on: Feb 20, 2021
 
 Comments:
     n3rgy data api functions
@@ -270,8 +270,9 @@ class N3rgyDataApi:
         :return: consumption data list
         """
         payload = self.get_valid_date(start, end)
-        payload['granularity'] = granularity
-        return self.call_api(utility, 'consumption', '1', payload=payload, tag='READ_CONSUMPTION')
+        if payload is not None:
+            payload['granularity'] = granularity
+        return self.call_api(utility, 'consumption', '1', payload=payload)
 
     def read_tariff(self, utility, start, end):
         """
