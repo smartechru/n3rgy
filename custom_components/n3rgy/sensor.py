@@ -51,7 +51,7 @@ from .const import (
 from .n3rgy_api import N3rgyDataApi, N3rgyGrantConsent
 
 # set scan interval as 2 mins
-SCAN_INTERVAL = timedelta(seconds=120)
+SCAN_INTERVAL = timedelta(seconds=1800)
 _LOGGER = logging.getLogger(__name__)
 
 
