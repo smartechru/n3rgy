@@ -1,7 +1,7 @@
 """
 Script file: sensor.py
 Created on: Jan 29, 2021
-Last modified on: Feb 20, 2021
+Last modified on: Feb 24, 2021
 
 Comments:
     Support for n3rgy data sensor
@@ -50,6 +50,8 @@ from .const import (
 )
 from .n3rgy_api import N3rgyDataApi, N3rgyGrantConsent
 
+# set scan interval as 2 mins
+SCAN_INTERVAL = timedelta(seconds=120)
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -80,8 +82,7 @@ async def async_setup_entry(hass, entry, async_add_entities):
             hass,
             _LOGGER,
             name=PLATFORM,
-            update_method=async_update_data,
-            update_interval=timedelta(seconds=100),
+            update_method=async_update_data
         )
 
         # fetch initial data so we have data when entities subscribe
@@ -226,6 +227,7 @@ def read_consumption(api, config_entry):
     data = None
     try:
         data = api.read_consumption(utility, start, end)
+        _LOGGER.info(f"[READ_CONSUMPTION] Grabbed consumption data: ({start}-{end})")
     except ValueError as ex:
         _LOGGER.warning(f"[READ_CONSUMPTION] Error: {str(err)}")
     finally:
@@ -303,12 +305,12 @@ class N3rgySensor(Entity):
     @property
     def should_poll(self):
         """
-        No need to poll.
+        Need to poll.
         Coordinator notifies entity of updates
         :param: none
         :return: false
         """
-        return False
+        return True
 
     @property
     def device_state_attributes(self):
@@ -347,6 +349,18 @@ class N3rgySensor(Entity):
         """
         return self._coordinator.last_update_success
 
+    def update_state(self):
+        """
+        Calculate the consumption data
+        :param: none
+        :return: none
+        """
+        if self._coordinator.data:
+            # get consumption value
+            value_list = self._coordinator.data['values']
+            values = [v['value'] for v in value_list]
+            self._state = f"{sum(values):.2f}"
+
     async def async_added_to_hass(self):
         """
         When entity is added to hass
@@ -356,14 +370,7 @@ class N3rgySensor(Entity):
         self.async_on_remove(
             self._coordinator.async_add_listener(self.async_write_ha_state)
         )
-        if self._coordinator.data:
-            # get consumption value
-            value_list = self._coordinator.data['values']
-            values = [v['value'] for v in value_list]
-            
-            # logging
-            # _LOGGER.debug(f"Consumption values: {values}")
-            self._state = f"{sum(values):.2f}"
+        self.update_state()
 
     async def async_update(self):
         """
@@ -372,4 +379,6 @@ class N3rgySensor(Entity):
         :param: none
         :return: none
         """
+        _LOGGER.info("[ENTITY] Async updated")
         await self._coordinator.async_request_refresh()
+        self.update_state()
